@@ -224,6 +224,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                         ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
                         ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
                         ROS_ERROR_STREAM("manny Distance " << sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) << " m");
+                        ROS_ERROR_STREAM("manny GoalLocation Pose: (" << goalLocation.x << ", " << goalLocation.y << ", " << goalLocation.theta << ")");
                         goalReached = true;
                         ros::Duration(1.5).sleep();
                         raiseWrist();
@@ -362,11 +363,13 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
         //goalLocation.x = aprilTagLocation.x;
         //goalLocation.y = aprilTagLocation.y;
+        float tagDistance = sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2));
 
         ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
         ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
+        ROS_ERROR_STREAM("manny GoalLocation Pose: (" << goalLocation.x << ", " << goalLocation.y << ", " << goalLocation.theta << ")");
         ROS_ERROR_STREAM("manny Tag ID: " << targetDetected.data);
-        ROS_ERROR_STREAM("manny Distance of tag from discovery " << sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) << " m");
+        ROS_ERROR_STREAM("manny Distance of tag from discovery " << tagDistance << " m");
             
         ////if this is the goal target
         //if (message->detections[0].id == 256) {
