@@ -162,7 +162,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
     std_msgs::String stateMachineMsg;
     
     if (currentMode == 2 || currentMode == 3) { //Robot is in automode
-        if(!clawReady && sqrt(pow(currentLocation.y - aprilTagLocation.y, 2) + pow(goalLocation.x - aprilTagLocation.x, 2)) <= 0.20){
+        if(!clawReady && sqrt(pow(currentLocation.y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) <= 0.40){
             openFingers();
             lowerWrist();
             clawReady = true;
@@ -215,6 +215,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                         setVelocity(0.0, 0.0);
                         ROS_ERROR_STREAM("manny GOAL REACHED!");
                         ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
+                        ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
                         ROS_ERROR_STREAM("manny Distance " << sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) << " m");
                         goalReached = true;
                     }
@@ -307,6 +308,12 @@ void setVelocity(double linearVel, double angularVel)
  ************************/
 
 void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& message) {
+    if(goalReached && sqrt( pow(currentLocation.y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) > 1) {
+        goalReached = false;
+        closeFingers();
+        raiseWrist();
+        clawReady = false;
+    }
 
     if(message->detections.size() > 0 && currentLocation.theta != 0 && !goalReached) {
         //if(movingTowardsTag == false) {
@@ -340,7 +347,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
             // Set goal location to 16 cm before the april tag to account for the gripper
             float adjusted_distance;
             goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
-            adjusted_distance = sqrt( pow(aprilTagLocation.y - currentLocation.y, 2) + pow(aprilTagLocation.x - currentLocation.x, 2)) - 0.16;
+            adjusted_distance = sqrt( pow(aprilTagLocation.y - currentLocation.y, 2) + pow(aprilTagLocation.x - currentLocation.x, 2)) - 0.40;
             goalLocation.x = currentLocation.x + adjusted_distance * cos(goalLocation.theta);
             goalLocation.y = currentLocation.y + adjusted_distance * sin(goalLocation.theta);
 
@@ -505,7 +512,7 @@ void raiseWrist()
 {
     // Return wrist back to neutral position at 0 degrees
     std_msgs::Int16 msg;
-    msg.data = 120;
+    msg.data = 0;
     wristAnglePublish.publish(msg);
 }
 
@@ -513,7 +520,7 @@ void lowerWrist()
 {
     // Lowers wrist to just above the ground at 50 degrees
     std_msgs::Int16 msg;
-    msg.data = 170;
+    msg.data = 50;
     wristAnglePublish.publish(msg);
 }
 
