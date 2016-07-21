@@ -49,6 +49,7 @@ bool movingTowardsTag = false;
 bool goalReached = false;
 float cameraHeight = 0.195; // 19.5 cm
 bool clawReady = false;
+float tagDistance = 1;
 
 // state machine states
 #define STATE_MACHINE_TRANSFORM	0
@@ -220,6 +221,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                     if(!goalReached){
                         closeFingers();
                         setVelocity(0.0, 0.0);
+                        tagDistance = 1;
                         ROS_ERROR_STREAM("manny GOAL REACHED!");
                         ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
                         ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
@@ -251,10 +253,10 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                     ROS_ERROR_STREAM("manny Moving towards apriltag...");
                 }
 			    if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) > 0.1) {
-					setVelocity(0.0, 0.17); //rotate left
+					setVelocity(0.0, 0.12); //rotate left
 			    }
 			    else if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) < -0.1) {
-					setVelocity(0.0, -0.14); //rotate right
+					setVelocity(0.0, -0.12); //rotate right
 				}
 				else {
 					setVelocity(0.0, 0.0); //stop
@@ -272,7 +274,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                     ROS_ERROR_STREAM("manny Moving towards apriltag...");
                 }
 				if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2 - 1) {
-					setVelocity(0.25, 0.0);
+					setVelocity(0.2, 0.0);
 				}
 				else {
 					setVelocity(0.0, 0.0); //stop
@@ -326,7 +328,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
         movingTowardsTag = false;
     }
 
-    if(message->detections.size() > 0 && currentLocation.theta != 0 && !goalReached) {
+    if(message->detections.size() > 0 && currentLocation.theta != 0 && !goalReached && tagDistance > 0.3) {
 
         movingTowardsTag = true;
         targetDetected.data =  message->detections[0].id;
@@ -356,18 +358,20 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
         // Set goal location to 16 cm before the april tag to account for the gripper
         float adjusted_distance;
-        goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
+        //goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
+        goalLocation.theta = aprilTagLocation.theta;
         adjusted_distance = sqrt( pow(aprilTagLocation.y - currentLocation.y, 2) + pow(aprilTagLocation.x - currentLocation.x, 2)) - 0.31;
         goalLocation.x = currentLocation.x + adjusted_distance * cos(goalLocation.theta);
         goalLocation.y = currentLocation.y + adjusted_distance * sin(goalLocation.theta);
 
         //goalLocation.x = aprilTagLocation.x;
         //goalLocation.y = aprilTagLocation.y;
-        float tagDistance = sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2));
+        tagDistance = sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2));
 
         ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
         ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
         ROS_ERROR_STREAM("manny GoalLocation Pose: (" << goalLocation.x << ", " << goalLocation.y << ", " << goalLocation.theta << ")");
+        ROS_ERROR_STREAM("manny Relative Angle: " << relative_angle);
         ROS_ERROR_STREAM("manny Tag ID: " << targetDetected.data);
         ROS_ERROR_STREAM("manny Distance of tag from discovery " << tagDistance << " m");
             
