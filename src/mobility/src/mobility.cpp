@@ -48,6 +48,7 @@ bool targetsCollected [256] = {0}; //array of booleans indicating whether each t
 bool movingTowardsTag = false;
 bool goalReached = false;
 float cameraHeight = 0.195; // 19.5 cm
+bool clawReady = false;
 
 // state machine states
 #define STATE_MACHINE_TRANSFORM	0
@@ -150,6 +151,8 @@ int main(int argc, char **argv) {
     std_msgs::String msg;
     msg.data = "Log Started";
     infoLogPublisher.publish(msg);
+    raiseWrist();
+    closeFingers();
     ros::spin();
     
     return EXIT_SUCCESS;
@@ -159,6 +162,11 @@ void mobilityStateMachine(const ros::TimerEvent&) {
     std_msgs::String stateMachineMsg;
     
     if (currentMode == 2 || currentMode == 3) { //Robot is in automode
+        if(!clawReady && sqrt(pow(currentLocation.y - aprilTagLocation.y, 2) + pow(goalLocation.x - aprilTagLocation.x, 2)) <= 0.20){
+            openFingers();
+            lowerWrist();
+            clawReady = true;
+        }
 
 		switch(stateMachineState) {
 			
@@ -168,16 +176,16 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 				stateMachineMsg.data = "TRANSFORMING";
 				//If angle between current and goal is significant
 				if (fabs(angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta)) > 0.10) {
-                    //if(movingTowardsTag) {
+                    if(!goalReached) {
                         ROS_ERROR_STREAM("manny Moving towards apriltag...");
-                    //}
+                    }
 					stateMachineState = STATE_MACHINE_ROTATE; //rotate
 				}
 				//If goal has not yet been reached
 				else if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2) {
-                    //if(movingTowardsTag) {
+                    if(!goalReached) {
                         ROS_ERROR_STREAM("manny Moving towards apriltag...");
-                    //}
+                    }
 					stateMachineState = STATE_MACHINE_TRANSLATE; //translate
 				}
 				//If returning with a target
@@ -203,10 +211,13 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 
                     //if(movingTowardsTag) {
                         //movingTowardsTag = false;
+                    if(!goalReached){
                         setVelocity(0.0, 0.0);
                         ROS_ERROR_STREAM("manny GOAL REACHED!");
                         ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
+                        ROS_ERROR_STREAM("manny Distance " << sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) << " m");
                         goalReached = true;
+                    }
                     //} else {
 					 ////select new heading from Gaussian distribution around current heading
 					//goalLocation.theta = rng->gaussian(currentLocation.theta, 0.25);
@@ -225,7 +236,9 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 			//Stay in this state until angle is minimized
 			case STATE_MACHINE_ROTATE: {
 				stateMachineMsg.data = "ROTATING";
-                ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                if(!goalReached) {
+                    ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                }
 			    if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) > 0.1) {
 					setVelocity(0.0, 0.2); //rotate left
 			    }
@@ -244,9 +257,11 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 			//Stay in this state until angle is at least PI/2
 			case STATE_MACHINE_TRANSLATE: {
 				stateMachineMsg.data = "TRANSLATING";
-                ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                if(!goalReached) {
+                    ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                }
 				if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2) {
-					setVelocity(0.15, 0.0);
+					setVelocity(0.25, 0.0);
 				}
 				else {
 					setVelocity(0.0, 0.0); //stop
@@ -322,14 +337,20 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
             }
 
-            goalLocation.x =  aprilTagLocation.x;
-            goalLocation.y = aprilTagLocation.y;
+            // Set goal location to 16 cm before the april tag to account for the gripper
+            float adjusted_distance;
             goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
+            adjusted_distance = sqrt( pow(aprilTagLocation.y - currentLocation.y, 2) + pow(aprilTagLocation.x - currentLocation.x, 2)) - 0.16;
+            goalLocation.x = currentLocation.x + adjusted_distance * cos(goalLocation.theta);
+            goalLocation.y = currentLocation.y + adjusted_distance * sin(goalLocation.theta);
+
+            //goalLocation.x = aprilTagLocation.x;
+            //goalLocation.y = aprilTagLocation.y;
             
             ROS_ERROR_STREAM("manny Current Pose: (" << currentLocation.x << ", " << currentLocation.y << ", " << currentLocation.theta << ")");
             ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
             ROS_ERROR_STREAM("manny Tag ID: " << targetDetected.data);
-            ROS_ERROR_STREAM("manny Distance of tag from discovery " << sqrt(pow(aprilTagLocation.x, 2) + pow(aprilTagLocation.y, 2)) << " m");
+            ROS_ERROR_STREAM("manny Distance of tag from discovery " << sqrt(pow(currentLocation. y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) << " m");
             
         //}
         ////if this is the goal target
@@ -484,7 +505,7 @@ void raiseWrist()
 {
     // Return wrist back to neutral position at 0 degrees
     std_msgs::Int16 msg;
-    msg.data = 0;
+    msg.data = 120;
     wristAnglePublish.publish(msg);
 }
 
@@ -492,7 +513,7 @@ void lowerWrist()
 {
     // Lowers wrist to just above the ground at 50 degrees
     std_msgs::Int16 msg;
-    msg.data = 50;
+    msg.data = 170;
     wristAnglePublish.publish(msg);
 }
 
