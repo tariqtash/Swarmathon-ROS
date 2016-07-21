@@ -288,6 +288,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
         if (!targetsCollected[message->detections[0].id]) {
 			//copy target ID to class variable
 			targetDetected.data = message->detections[0].id;
+            ROS_ERROR_STREAM("The ID is: " << targetDetected.data);
 			
 	        //set angle to center as goal heading
 			goalLocation.theta = M_PI + atan2(currentLocation.y, currentLocation.x);
