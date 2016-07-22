@@ -252,10 +252,10 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                 if(!goalReached) {
                     ROS_ERROR_STREAM("manny Moving towards apriltag...");
                 }
-			    if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) > 0.1) {
+			    if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) > 0.07) {
 					setVelocity(0.0, 0.12); //rotate left
 			    }
-			    else if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) < -0.1) {
+			    else if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) < -0.07) {
 					setVelocity(0.0, -0.12); //rotate right
 				}
 				else {
