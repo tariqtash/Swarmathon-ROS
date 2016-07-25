@@ -36,6 +36,7 @@ void raiseWrist();  // Return wrist back to 0 degrees
 void lowerWrist();  // Lower wrist to 50 degrees
 
 //Numeric Variables
+#define CAMERA_X_OFFSET 0.03
 geometry_msgs::Pose2D currentLocation;
 geometry_msgs::Pose2D goalLocation;
 geometry_msgs::Pose2D aprilTagLocation;
@@ -320,7 +321,7 @@ void setVelocity(double linearVel, double angularVel)
  ************************/
 
 void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& message) {
-    if(goalReached && sqrt( pow(currentLocation.y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) > 1) {
+    if(goalReached && sqrt( pow(currentLocation.y - aprilTagLocation.y, 2) + pow(currentLocation.x - aprilTagLocation.x, 2)) > 0.5) {
         goalReached = false;
         closeFingers();
         raiseWrist();
@@ -328,7 +329,7 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
         movingTowardsTag = false;
     }
 
-    if(message->detections.size() > 0 && currentLocation.theta != 0 && !goalReached && tagDistance > 0.3) {
+    if(message->detections.size() > 0 && currentLocation.theta != 0 && stateMachineState != STATE_MACHINE_ROTATE) {
 
         movingTowardsTag = true;
         targetDetected.data =  message->detections[0].id;
@@ -336,15 +337,17 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
         // z is the 3D vector pointing to the april tag as a scalar value 
         // x is the x value relative to the rover of the tag
         // r is the vector projected to the ground as a 2D scalar value
-        float relative_angle, r, z, x;
-        z = message->detections[0].pose.pose.position.z;
+        float relative_angle, r, r_proj, x, y, z;
         x = message->detections[0].pose.pose.position.x;
-        r = sqrt( pow(z, 2) - pow(cameraHeight, 2));
-        relative_angle = -1 * asin(x / r);
+        y = message->detections[0].pose.pose.position.y;
+        z = message->detections[0].pose.pose.position.z;
+        r = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2) + pow(CAMERA_X_OFFSET, 2));
+        r_proj = sqrt(pow(r, 2) - pow(cameraHeight, 2));
+        relative_angle = -1 * asin(x / r_proj);
 
-        aprilTagLocation.x = r * cos(currentLocation.theta + relative_angle) + currentLocation.x -0.03;
-        aprilTagLocation.y = r * sin(currentLocation.theta + relative_angle) + currentLocation.y + 0.12;
         aprilTagLocation.theta = currentLocation.theta + relative_angle;
+        aprilTagLocation.x = r_proj * cos(aprilTagLocation.theta) + currentLocation.x + 0.12 * cos(currentLocation.theta);
+        aprilTagLocation.y = r_proj * sin(aprilTagLocation.theta) + currentLocation.y + 0.12 * sin(currentLocation.theta);
 
         if(aprilTagLocation.theta > M_PI) {
 
@@ -358,8 +361,8 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
         // Set goal location to 16 cm before the april tag to account for the gripper
         float adjusted_distance;
-        //goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
-        goalLocation.theta = aprilTagLocation.theta;
+        goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
+        //goalLocation.theta = aprilTagLocation.theta;
         adjusted_distance = sqrt( pow(aprilTagLocation.y - currentLocation.y, 2) + pow(aprilTagLocation.x - currentLocation.x, 2)) - 0.31;
         goalLocation.x = currentLocation.x + adjusted_distance * cos(goalLocation.theta);
         goalLocation.y = currentLocation.y + adjusted_distance * sin(goalLocation.theta);
@@ -372,6 +375,8 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
         ROS_ERROR_STREAM("manny AprilTag Pose: (" << aprilTagLocation.x << ", " << aprilTagLocation.y << ", " << aprilTagLocation.theta << ")");
         ROS_ERROR_STREAM("manny GoalLocation Pose: (" << goalLocation.x << ", " << goalLocation.y << ", " << goalLocation.theta << ")");
         ROS_ERROR_STREAM("manny Relative Angle: " << relative_angle);
+        ROS_ERROR_STREAM("manny r: " << r);
+        ROS_ERROR_STREAM("manny r_proj: " << r_proj);
         ROS_ERROR_STREAM("manny Tag ID: " << targetDetected.data);
         ROS_ERROR_STREAM("manny Distance of tag from discovery " << tagDistance << " m");
             
