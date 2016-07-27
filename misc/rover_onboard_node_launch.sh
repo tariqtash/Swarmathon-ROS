@@ -47,7 +47,7 @@ findDevicePath() {
 
 #Startup ROS packages/processes
 #nohup rosrun target_detection camera &
-nohup rosrun usb_cam usb_cam_node  /usb_cam/image_raw:=/$HOSTNAME/camera/image  &
+nohup rosrun usb_cam usb_cam_node  /usb_cam/image_raw:=/$HOSTNAME/camera/image _camera_info_url:=file:///home/swarmie/rover_workspace/camera_info/head_camera.yaml &
 nohup rosrun mobility mobility &
 #nohup rosrun obstacle_detection obstacle &
 nohup rosrun target_detection target &
@@ -81,6 +81,7 @@ nohup rosrun robot_localization ekf_localization_node _two_d_mode:=true __name:=
 
 rosparam set /$HOSTNAME/apriltag_detector/tag_family "36h11"
 rosparam set /$HOSTNAME/apriltag_detector/tag_descriptions "[{id: 25, size: 0.037}, {id: 237, size: 0.037}, {id: 233, size: 0.037}, {id: 18, size: 0.037}]"
+rosparam set /$HOSTNAME/apriltag_detector/camera_info_url "~/rover_workspace/camera_info/head_camera.yaml"
 nohup rosrun apriltags_ros apriltag_detector_node __ns:=/$HOSTNAME /$HOSTNAME/image_rect:=/$HOSTNAME/camera/image /camera_info:=/usb_cam/camera_info &
 
 
