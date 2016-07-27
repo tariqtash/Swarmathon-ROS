@@ -185,14 +185,14 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 				//If angle between current and goal is significant
 				if (fabs(angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta)) > 0.07) {
                     if(!goalReached) {
-                        ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                        ROS_ERROR_STREAM("manny rotating towards apriltag...");
                     }
 					stateMachineState = STATE_MACHINE_ROTATE; //rotate
 				}
 				//If goal has not yet been reached
 				else if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2 - 1) {
                     if(!goalReached) {
-                        ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                        ROS_ERROR_STREAM("manny translating towards apriltag...");
                     }
 					stateMachineState = STATE_MACHINE_TRANSLATE; //translate
 				}
@@ -231,6 +231,8 @@ void mobilityStateMachine(const ros::TimerEvent&) {
                         goalReached = true;
                         ros::Duration(1.5).sleep();
                         raiseWrist();
+                        ros::Duration(1.5).sleep();
+                        openFingers();
                     }
                     //} else {
 					 ////select new heading from Gaussian distribution around current heading
@@ -251,13 +253,13 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 			case STATE_MACHINE_ROTATE: {
 				stateMachineMsg.data = "ROTATING";
                 if(!goalReached) {
-                    ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                    ROS_ERROR_STREAM("manny rotating towards apriltag...");
                 }
 			    if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) > 0.07) {
-					setVelocity(0.0, 0.12); //rotate left
+					setVelocity(0.0, 0.15); //rotate left
 			    }
 			    else if (angles::shortest_angular_distance(currentLocation.theta, goalLocation.theta) < -0.07) {
-					setVelocity(0.0, -0.12); //rotate right
+					setVelocity(0.0, -0.15); //rotate right
 				}
 				else {
 					setVelocity(0.0, 0.0); //stop
@@ -272,7 +274,7 @@ void mobilityStateMachine(const ros::TimerEvent&) {
 			case STATE_MACHINE_TRANSLATE: {
 				stateMachineMsg.data = "TRANSLATING";
                 if(!goalReached) {
-                    ROS_ERROR_STREAM("manny Moving towards apriltag...");
+                    ROS_ERROR_STREAM("manny translating towards apriltag...");
                 }
 				if (fabs(angles::shortest_angular_distance(currentLocation.theta, atan2(goalLocation.y - currentLocation.y, goalLocation.x - currentLocation.x))) < M_PI_2 - 1) {
 					setVelocity(0.2, 0.0);
@@ -361,8 +363,8 @@ void targetHandler(const apriltags_ros::AprilTagDetectionArray::ConstPtr& messag
 
         // Set goal location to 16 cm before the april tag to account for the gripper
         float adjusted_distance;
-        goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
-        //goalLocation.theta = aprilTagLocation.theta;
+        //goalLocation.theta = atan2(aprilTagLocation.y - currentLocation.y, aprilTagLocation.x - currentLocation.x);
+        goalLocation.theta = aprilTagLocation.theta;
         adjusted_distance = sqrt( pow(aprilTagLocation.y - currentLocation.y, 2) + pow(aprilTagLocation.x - currentLocation.x, 2)) - 0.31;
         goalLocation.x = currentLocation.x + adjusted_distance * cos(goalLocation.theta);
         goalLocation.y = currentLocation.y + adjusted_distance * sin(goalLocation.theta);
