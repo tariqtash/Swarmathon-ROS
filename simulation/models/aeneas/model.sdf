@@ -6,7 +6,7 @@
 
 		<link name='base_link'>
 			<inertial>
-				<mass>5.0</mass>
+				<mass>10.0</mass>
 				<inertia>
 					<ixx>0.04</ixx>
 					<ixy>0.0</ixy>
@@ -52,6 +52,14 @@
 					<izz>0.0002</izz>
 				</inertia>
 			</inertial>
+			<collision name='collision'>
+				<pose>0 0 0 0 0 0</pose>
+				<geometry>
+					<box>
+						<size>0.25 0.30 0.005</size>
+					</box>
+				</geometry>
+			</collision>
 			<visual name='visual'>
 				<geometry>
 					<mesh>
@@ -103,10 +111,10 @@
 				</material>
 			</visual>
 			<collision name="collision">
-				<pose>0.15 0 -0.022 0 0 1.57</pose>
+				<pose>0.16 0 -0.022 0 0 1.57</pose>
 				<geometry>
 					<box>
-						<size>0.07 0.05 0.065</size>
+						<size>0.10 0.05 0.065</size>
 					</box>
 				</geometry>
 			</collision>
@@ -145,6 +153,22 @@
 				<geometry>
 					<box>
 						<size>0.06 0.01 0.007</size>
+					</box>
+				</geometry>
+				<surface>
+					<friction>
+						<ode>
+							<mu>0.8</mu>
+							<mu2>0.7</mu2>
+						</ode>
+					</friction>
+				</surface>
+			</collision>
+			<collision name="collision2">
+				<pose>0.2475 0.007 0.01 0 0 -0.38</pose>
+				<geometry>
+					<box>
+						<size>0.01 0.01 0.007</size>
 					</box>
 				</geometry>
 				<surface>
@@ -220,6 +244,22 @@
 					</friction>
 				</surface>
 			</collision>
+			<collision name="collision2">
+				<pose>0.2475 -0.007 0.01 0 0 0.38</pose>
+				<geometry>
+					<box>
+						<size>0.01 0.01 0.007</size>
+					</box>
+				</geometry>
+				<surface>
+					<friction>
+						<ode>
+							<mu>0.8</mu>
+							<mu2>0.7</mu2>
+						</ode>
+					</friction>
+				</surface>
+			</collision>
 			<visual name="visual">
 				<pose>0 0 -0.06 0 0 0</pose>
 				<geometry>
@@ -259,7 +299,7 @@
 		<link name="left_front_wheel">
 			<pose>0.095 0.135 -0.03 0 0 0</pose>
 			<inertial>
-				<mass>0.1</mass>
+				<mass>0.5</mass>
 				<inertia>
 					<ixx>0.00635</ixx>
 					<ixy>0.0</ixy>
@@ -311,7 +351,7 @@
 		<link name="right_front_wheel">
 			<pose>0.095 -0.135 -0.03 0 0 0</pose>
 			<inertial>
-				<mass>0.1</mass>
+				<mass>0.5</mass>
 				<inertia>
 					<ixx>0.00635</ixx>
 					<ixy>0.0</ixy>
@@ -363,7 +403,7 @@
 		<link name="left_rear_wheel">
 			<pose>-0.095 0.135 -0.03 0 0 0</pose>
 			<inertial>
-				<mass>0.1</mass>
+				<mass>0.5</mass>
 				<inertia>
 					<ixx>0.00635</ixx>
 					<ixy>0.0</ixy>
@@ -415,7 +455,7 @@
 		<link name="right_rear_wheel">
 			<pose>-0.095 -0.135 -0.03 0 0 0</pose>
 			<inertial>
-				<mass>0.1</mass>
+				<mass>0.5</mass>
 				<inertia>
 					<ixx>0.00635</ixx>
 					<ixy>0.0</ixy>
@@ -609,14 +649,14 @@
 				</inertia>
 			</inertial>
 			<sensor type="camera" name="camera">
-				<pose>0.125 -0.0162 0.103 0.0 0.436 0.0</pose>
+				<pose>0.145 -0.0162 0.088 0.0 0.628 0.0</pose>
 				<visualize>false</visualize>
 				<update_rate>6.0</update_rate>
 				<camera name="head">
 					<horizontal_fov>1.0123</horizontal_fov>
 					<image>
-						<width>640</width>
-						<height>320</height>
+						<width>320</width>
+						<height>240</height>
 						<format>B8G8R8</format>
 					</image>
 					<clip>
@@ -658,8 +698,8 @@
 			<rightFingerJoint>gripper_right_finger_joint</rightFingerJoint>
 
 			<!-- required: data input topics for this plugin -->
-			<wristTopic>/aeneas/wristAngle</wristTopic>
-			<fingerTopic>/aeneas/fingerAngle</fingerTopic>
+			<wristTopic>/aeneas/wristAngle/cmd</wristTopic>
+			<fingerTopic>/aeneas/fingerAngle/cmd</fingerTopic>
 
 			<!-- optional: print debug info to the console -->
 			<debug>
@@ -705,7 +745,7 @@
 			<wheelDiameter>0.12</wheelDiameter>
 			<robotBaseFrame>aeneas/base_link</robotBaseFrame>
 			<torque>2.8</torque>
-			<commandTopic>/aeneas/velocity</commandTopic>
+			<commandTopic>/aeneas/skidsteer</commandTopic>
 			<odometryTopic>/aeneas/odom</odometryTopic>
 			<odometryFrame>aeneas/odom</odometryFrame>
 			<broadcastTF>0</broadcastTF>
